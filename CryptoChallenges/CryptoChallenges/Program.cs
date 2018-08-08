@@ -10,14 +10,16 @@ namespace CryptoCallenges
     {
         static void Main(string[] args)
         {
-            string input = Console.ReadLine();
-            Console.WriteLine(DecodeSingleCharacterXor(input, out int xor));
-            Console.WriteLine(xor);
+            //Console.WriteLine(DecodeSingleCharacterXor(input, out int xor));
+            //Console.WriteLine(xor);
 
             while (true)
             {
-                Console.ReadLine();
-                Console.ReadLine();
+                //byte[] input = Convert.FromBase64String(PadBase64(Console.ReadLine()));
+                //byte[] xor = HexToByteArray(Console.ReadLine());
+                //byte[] result = FixedXOR(input, xor);
+                Console.WriteLine(DecodeSingleCharacterXor(Console.ReadLine(), out long xor) + " " + xor);
+                //Console.WriteLine(Convert.ToBase64String(result));
             }
         }
 
@@ -28,10 +30,10 @@ namespace CryptoCallenges
 
         static byte[] HexToByteArray(string hex)
         {
-            byte[] output = new byte[hex.Length / 2];
+            byte[] output = new byte[(int)Math.Ceiling((double)hex.Length / 2)];
             for (int i = 0; i < output.Length; i++)
             {
-                output[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
+                output[i] = Convert.ToByte(hex.Substring(i * 2, Math.Min(hex.Length - (i * 2), 2)), 16);
             }
             return output;
         }
@@ -48,67 +50,86 @@ namespace CryptoCallenges
             return string.Join(space, input.Select(b => Convert.ToString(b, 2).PadLeft(8, '0')));
         }
 
+        static string PadBase64(string base64)
+        {
+            return base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
+        }
+
         static byte[] FixedXOR(byte[] input, byte[] xor)
         {
-            Console.WriteLine(ByteArrayToBinary(input, " "));
-            Console.WriteLine(string.Join(" ", Enumerable.Repeat(ByteArrayToBinary(xor, " "), (int)Math.Ceiling((decimal)input.Length / xor.Length))));
+            //Console.WriteLine(ByteArrayToBinary(input, " "));
+            //Console.WriteLine(string.Join(" ", Enumerable.Repeat(ByteArrayToBinary(xor, " "), (int)Math.Ceiling((decimal)input.Length / xor.Length))));
             byte[] output = new byte[input.Length];
             for (int i = 0; i < output.Length; i++)
             {
                 output[i] = (byte)(input[i] ^ xor[i % xor.Length]);
             }
-            Console.WriteLine(ByteArrayToBinary(output, " "));
-            Console.WriteLine();
+            //Console.WriteLine(ByteArrayToBinary(output, " "));
+            //Console.WriteLine();
             return output;
         }
 
-        static string DecodeSingleCharacterXor(string input, out int xor)
+        static string DecodeSingleCharacterXor(string input, out long xor)
         {
             xor = 0;
+            long xorTmp = 0;
+            byte[] inputBytes = HexToByteArray(input);
             string currentBest = null;
-            double score = double.NegativeInfinity;
-            for (byte i = byte.MinValue; i < byte.MaxValue; i++)
+            string currentSecondBest = null;
+            string currentThirdBest = null;
+            double error = double.PositiveInfinity;
+            
+            Parallel.For(int.MinValue, int.MaxValue, i =>
             {
-                string current = Convert.ToBase64String(FixedXOR(HexToByteArray(input), new[] { i }));
-                double currentScore = EnglishLetterFrequencyCorrelation(current);
-                if (currentScore > score)
+                string current = Convert.ToBase64String(FixedXOR(inputBytes, BitConverter.GetBytes((short)i)));
+                double currentError = EnglishLetterFrequencyCorrelation(current);
+                //Console.WriteLine(current + " " + currentError + " " + i);
+                Console.WriteLine(current + " " + i);
+                if (currentError < error)
                 {
-                    xor = i;
+                    //if (error < .4 || i % 1 == 0) Console.WriteLine(current +" "+ i);
+                    xorTmp = i;
+                    error = currentError;
+                    currentThirdBest = currentSecondBest;
+                    currentSecondBest = currentBest;
                     currentBest = current;
-                    score = currentScore;
                 }
-            }
+            });
+            xor = xorTmp;
+            Console.WriteLine(currentThirdBest);
+            Console.WriteLine(currentSecondBest);
             return currentBest;
         }
         static double EnglishLetterFrequencyCorrelation(string input)
         {
+            input = input.ToLower();
             return
-                (input.Where(l => l == 'a').Count() - 1) * 0.08167 +
-                (input.Where(l => l == 'b').Count() - 1) * 0.01492 +
-                (input.Where(l => l == 'c').Count() - 1) * 0.02782 +
-                (input.Where(l => l == 'd').Count() - 1) * 0.04253 +
-                (input.Where(l => l == 'e').Count() - 1) * 0.1270 +
-                (input.Where(l => l == 'f').Count() - 1) * 0.02228 +
-                (input.Where(l => l == 'g').Count() - 1) * 0.02015 +
-                (input.Where(l => l == 'h').Count() - 1) * 0.06094 +
-                (input.Where(l => l == 'i').Count() - 1) * 0.06966 +
-                (input.Where(l => l == 'j').Count() - 1) * 0.00153 +
-                (input.Where(l => l == 'k').Count() - 1) * 0.00772 +
-                (input.Where(l => l == 'l').Count() - 1) * 0.04025 +
-                (input.Where(l => l == 'm').Count() - 1) * 0.02406 +
-                (input.Where(l => l == 'n').Count() - 1) * 0.06749 +
-                (input.Where(l => l == 'o').Count() - 1) * 0.07507 +
-                (input.Where(l => l == 'p').Count() - 1) * 0.01929 +
-                (input.Where(l => l == 'q').Count() - 1) * 0.00095 +
-                (input.Where(l => l == 'r').Count() - 1) * 0.05987 +
-                (input.Where(l => l == 's').Count() - 1) * 0.06327 +
-                (input.Where(l => l == 't').Count() - 1) * 0.09056 +
-                (input.Where(l => l == 'u').Count() - 1) * 0.02758 +
-                (input.Where(l => l == 'v').Count() - 1) * 0.00978 +
-                (input.Where(l => l == 'w').Count() - 1) * 0.02360 +
-                (input.Where(l => l == 'x').Count() - 1) * 0.00150 +
-                (input.Where(l => l == 'y').Count() - 1) * 0.01974 +
-                (input.Where(l => l == 'z').Count() - 1) * 0.00074;
+                Math.Abs(.08167 - (input.Count(c => c == 'a') / (double)input.Length)) +
+                Math.Abs(.01492 - (input.Count(c => c == 'b') / (double)input.Length)) +
+                Math.Abs(.02782 - (input.Count(c => c == 'c') / (double)input.Length)) +
+                Math.Abs(.04253 - (input.Count(c => c == 'd') / (double)input.Length)) +
+                Math.Abs(.12702 - (input.Count(c => c == 'e') / (double)input.Length)) +
+                Math.Abs(.02228 - (input.Count(c => c == 'f') / (double)input.Length)) +
+                Math.Abs(.02015 - (input.Count(c => c == 'g') / (double)input.Length)) +
+                Math.Abs(.06094 - (input.Count(c => c == 'h') / (double)input.Length)) +
+                Math.Abs(.06966 - (input.Count(c => c == 'i') / (double)input.Length)) +
+                Math.Abs(.00153 - (input.Count(c => c == 'j') / (double)input.Length)) +
+                Math.Abs(.00772 - (input.Count(c => c == 'k') / (double)input.Length)) +
+                Math.Abs(.04025 - (input.Count(c => c == 'l') / (double)input.Length)) +
+                Math.Abs(.02406 - (input.Count(c => c == 'm') / (double)input.Length)) +
+                Math.Abs(.06749 - (input.Count(c => c == 'n') / (double)input.Length)) +
+                Math.Abs(.07507 - (input.Count(c => c == 'o') / (double)input.Length)) +
+                Math.Abs(.01929 - (input.Count(c => c == 'p') / (double)input.Length)) +
+                Math.Abs(.00095 - (input.Count(c => c == 'q') / (double)input.Length)) +
+                Math.Abs(.05987 - (input.Count(c => c == 'r') / (double)input.Length)) +
+                Math.Abs(.06327 - (input.Count(c => c == 's') / (double)input.Length)) +
+                Math.Abs(.09056 - (input.Count(c => c == 't') / (double)input.Length)) +
+                Math.Abs(.02758 - (input.Count(c => c == 'u') / (double)input.Length)) +
+                Math.Abs(.00978 - (input.Count(c => c == 'v') / (double)input.Length)) +
+                Math.Abs(.02360 - (input.Count(c => c == 'w') / (double)input.Length)) +
+                Math.Abs(.00150 - (input.Count(c => c == 'x') / (double)input.Length)) +
+                Math.Abs(.01974 - (input.Count(c => c == 'y') / (double)input.Length)) +
+                Math.Abs(.00074 - (input.Count(c => c == 'z') / (double)input.Length));
         }
     }
 }
